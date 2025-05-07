@@ -15,8 +15,6 @@ RUN pip install --no-cache-dir -r reqs_from_gh_src.txt
 # Copy app source code
 COPY app.py .
 COPY transforms ./transforms
-COPY .env .
-
 
 # Expose FastAPI port
 EXPOSE 8000

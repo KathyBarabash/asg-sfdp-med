@@ -26,18 +26,24 @@ Example settings are provided in the [.env file](./.env), which can be modified 
 
 There are several options to install and run the SFDP.
 
-### Locally from Sources
+### Install and run locally from git sources
+> tested to work on Windows with `gitbash` and on `WSL2` `ubuntu24`
+> these instructions assume you have access to the TEADAL GitLab
 
 To run SFDP locally:
 
 1. Clone the repository and enter the cloned directory.
 2. Create and activate a fresh Python 3.12 virtual environment.
 
-Then install dependencies and start the service:
+Then install dependencies and start the service. Note that one of the requirements referred to in [requirements.txt](./requirements.txt) is pulling `asg-runtime` library sources from git. Check whether you need to modify repo link, e.g., to accomodate your gitconfig or in case the repo was relocated. Note also that for some configuration choices additional packages might have to be installed as explained in [.env file](./.env) file. If these configuration options are selected without installing the required packages, the app will fail to start and report the problem.
 
+To install terequirements:
 ```sh
 pip install -r requirements.txt
+```
 
+To run the app locally:
+```sh
 uvicorn app:app
 ```
 
@@ -49,16 +55,53 @@ pip install -r requirements-dev.txt
 fastapi dev
 ```
 
-### As a Locally Created Container Image
+### Create local image and run the container 
 
 On a system that supports containerization (e.g., Docker, Podman), you can build and run a local container image:
 
+To build image with the latest asg-runtime code, use [Dockerfile_from_src](./Dockerfile_from_src). 
+It pulls from a private GitLab repository of the project and thus requires valid `ssh` configuration. 
+You can follow instructions below or, if you know what you are doing, you can change the `Dockerfile` and, posibly also the `requirements.txt` to support `http` access with tokens.
+
+- Make sure you have ssh access to TEADAL's GitLab server
+
 ```sh
-# Build a local image (replace <asg-sfdp> with your desired image name)
-docker build -t <asg-sfdp>:local .
+ssh -T git@gitlab.teadal.ubiwhere.com
 ```
 
-**Note:**  
+- Add your keys to active ssh agent (so it can be used ducting docker build)
+
+```sh
+eval $(ssh-agent)
+ssh-keyscan gitlab.teadal.ubiwhere.com
+ssh-add ~/.ssh/<key>  # use your actual private key
+```
+
+- Now build the image
+```sh
+DOCKER_BUILDKIT=1 docker build --ssh default -t <asg-sfdp>:local -f Dockerfile_from_src .
+```
+
+Alternatively, it is possible to build the image from the base `asg-runtime` library image using the [Dockerfile_from_img](./Dockerfile_from_img). Note that you might want to change the image tag used before running the build command as follows:
+```sh
+docker build  -t <asg-sfdp:local -f Dockerfile_from_img  .
+```
+
+- Now run the image while providing it the settings 
+```sh
+docker run -v $(pwd)/.env:/app/.env -it --rm -p 8000:8000 sfdp-med-img:local
+
+# or 
+
+docker run --env-file .env -it --rm -p 8000:8000 <asg-sfdp>:local
+
+# or as separate variables
+```
+
+- Now you should be able to access the image (if running locally) at `http://localhost:8000/docs`
+
+
+#### Notes 
 If you are building inside a VM and encounter network issues, try:
 
 ```sh
@@ -79,6 +122,8 @@ Again, if running inside a VM with networking issues, you can run with host netw
 ```sh
 docker run --rm -it --network=host <asg-sfdp>:local
 ```
+### Deploying on k8s
+TODO
 
 ## Accessing the Service
 
@@ -89,10 +134,12 @@ When the SFDP app is running, its endpoints can be accessed either through a web
 ```plaintext
 .
 ├── .env                # Example settings
-├── Dockerfile          # Defines how to containerize the app
+├── Dockerfile_from_img # Defines how to containerize the app
+├── Dockerfile_from_src # Defines how to containerize the app
 ├── app.py              # The main FastAPI application
 ├── requirements.txt    # Production dependencies
 ├── requirements-dev.txt# Development-only dependencies
 ├── transforms/         # Folder containing data transformation functions
+├── README.md/          # This file :-)
 ```
 

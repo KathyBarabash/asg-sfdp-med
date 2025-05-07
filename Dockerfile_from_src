@@ -15,14 +15,14 @@ RUN mkdir -p ~/.ssh && \
 ssh-keyscan gitlab.teadal.ubiwhere.com >> ~/.ssh/known_hosts
 
 # Install Python dependencies
-COPY requirements.txt .
-RUN --mount=type=ssh pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=ssh pip install --no-cache-dir \
+    fastapi \
+    uvicorn \
+    git+ssh://git@gitlab.teadal.ubiwhere.com/teadal-tech/asg-runtime.git
 
 # Copy app source code
 COPY app.py .
 COPY transforms ./transforms
-COPY .env .
-
 
 # Expose FastAPI port
 EXPOSE 8000
