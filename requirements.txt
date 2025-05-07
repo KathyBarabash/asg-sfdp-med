@@ -1,3 +1,5 @@
 fastapi
 uvicorn
-git+https://gitlab.teadal.ubiwhere.com/teadal-tech/asg-runtime.git
+# git+https://gitlab.teadal.ubiwhere.com/teadal-tech/asg-runtime.git
+# git+git@gitlab.teadal.ubiwhere.com:teadal-tech/asg-runtime.git
+git+ssh://git@gitlab.teadal.ubiwhere.com/teadal-tech/asg-runtime.git
