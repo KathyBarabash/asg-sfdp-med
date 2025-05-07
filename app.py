@@ -3,16 +3,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Response
 from starlette.status import HTTP_200_OK
 
-from asg_runtime import Executor, Settings
+from asg_runtime import Executor
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        settings = Settings()
-        executor = await Executor.async_create(settings)
+        executor = await Executor.async_create()
         app.state.executor = executor
-        app.state.settings = settings.exposed()
+        app.state.settings = executor.get_settings()
 
         yield  # reached if no errors
     except Exception:
@@ -31,8 +30,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/service/settings", tags=["service"])
 def get_settings(request: Request) -> dict:
-    settings = request.app.state.settings
-    return settings
+    return request.app.state.settings
 
 
 @app.get("/service/stats", tags=["service"])
@@ -160,3 +158,88 @@ async def persons_above_60(request: Request):
 
     return await get_endpoint_data(request, spec_string)
 
+@app.get("/persons_above_30", tags=["data"])
+async def persons_endpoint(request: Request):
+    """
+    This endpoint returns all the people of age > 30
+    """
+    path_params = {
+    }
+    query_params = {
+    }
+    # Create Yaml and run executor
+    full_spec = {
+   "apiVersion": "connector/v1",
+   "kind": "connector/v1",
+   "metadata": {
+      "name": "TBD",
+      "description": "TBD",
+      "inputPrompt": "DUMMY PROMPT - SPEC IS CREATED STATICALLY"
+   },
+   "spec": {
+      "apiCalls": {
+         "GetPersonsAll": {
+            "type": "url",
+            "endpoint": "/persons",
+            "method": "get",
+            "arguments": []
+         }
+      },
+      "output": {
+         "execution": "",
+         "runtimeType": "python",
+         "data": {
+            "Person": {
+               "api": "GetPersonsAll",
+               "metadata": [],
+               "path": "."
+            }
+         },
+         "exports": {
+            "Person": {
+               "dataframe": ".",
+               "fields": {
+                  "person_ID": [
+                     {
+                        "function": "map_field",
+                        "description": "map fields or change names from source to target.",
+                        "params": {
+                           "source": "person_id",
+                           "target": "person_ID"
+                        }
+                     }
+                  ],
+                  "person_age": [
+                     {
+                        "function": "persons_above_age",
+                        "description": "Filters a DataFrame to return rows where the age\n      (calculated from year_of_birth, month_of_birth,day_of_birth) is bigger than the given input_age.",
+                        "params": {
+                           "age": 30,
+                           "target": "person_age"
+                                                 }
+                     }
+                  ]
+               }
+            }
+         }
+      }
+   },
+   "servers": [
+      {
+         "url": "http://medicine01.teadal.ubiwhere.com/fdp-medicine-node01/"
+      }
+   ],
+   "apiKey": "DUMMY_KEY",
+   "auth": "apiToken"
+}
+    for i, param in enumerate(path_params):
+        if full_spec["spec"]["apiCalls"]["GetPersonsAll"]["arguments"][i]["argLocation"] == 'parameter':
+            full_spec["spec"]["apiCalls"]["GetPersonsAll"]["arguments"][i]["value"] = path_params[param]
+
+    for i, param in enumerate(query_params):
+        if full_spec["spec"]["apiCalls"]["GetPersonsAll"]["arguments"][i]["argLocation"] == 'header':
+            full_spec["spec"]["apiCalls"]["GetPersonsAll"]["arguments"][i]["value"] = query_params[param]
+
+    spec_string = f"""{full_spec}"""
+
+    return await get_endpoint_data(request, spec_string)
