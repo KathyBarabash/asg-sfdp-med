@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+git+http://git@github.com/KathyBarabash/asg-runtime.git
+

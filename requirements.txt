@@ -1,4 +1,3 @@
 fastapi
 uvicorn
-# TODO - replace with the TEADAL link here
-git+http://git@github.com/KathyBarabash/asg-runtime.git
+git+https://gitlab.teadal.ubiwhere.com/teadal-tech/asg-runtime.git
